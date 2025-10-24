@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { QrCode, FileText, Nfc, Camera, X, ExternalLink } from 'lucide-react';
 import Tesseract from 'tesseract.js';
@@ -28,6 +29,7 @@ function ScanView() {
     return () => {
       stopCamera();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isScanning, scanMode]);
 
   // Clear captured image when scan mode changes
@@ -39,10 +41,15 @@ function ScanView() {
   const startCamera = async () => {
     setStatus('Initializing OCR engine and requesting camera...');
     try {
-      // Correct Tesseract.js v6 initialization
-      const worker = await Tesseract.createWorker('eng');
-      workerRef.current = worker;
-      console.log('Tesseract.js worker initialized successfully.');
+      // Correct Tesseract.js v6 initialization (kept for fallback/local OCR)
+      try {
+        const worker = await Tesseract.createWorker('eng');
+        workerRef.current = worker;
+        console.log('Tesseract.js worker initialized successfully.');
+      } catch (wErr) {
+        console.warn('Tesseract worker init failed (continuing, remote OCR will still work):', wErr);
+        workerRef.current = null;
+      }
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
@@ -56,7 +63,7 @@ function ScanView() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
-        setStatus('Camera ready. Position your business card and click "Capture Image".');
+        setStatus('Camera ready. Position your business card and click "Capture".');
       }
     } catch (error) {
       console.error('Camera/OCR Init Error:', error);
@@ -66,69 +73,151 @@ function ScanView() {
 
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
+      try {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+      } catch (err) {
+        console.warn('Error stopping tracks:', err);
+      }
       streamRef.current = null;
     }
     if (workerRef.current) {
-      workerRef.current.terminate();
+      try {
+        workerRef.current.terminate();
+      } catch (err) {
+        console.warn('Error terminating tesseract worker:', err);
+      }
       workerRef.current = null;
     }
     
     // Clean up captured image URL to prevent memory leaks
     if (capturedImageUrl) {
-      URL.revokeObjectURL(capturedImageUrl);
+      try {
+        URL.revokeObjectURL(capturedImageUrl);
+      } catch (e) {
+        /* ignore */
+      }
+      setCapturedImageUrl(null);
     }
   };
 
-  const captureImage = async () => {
+  // ----- REPLACED: captureImage -> captureAndProcess -----
+  const captureAndProcess = async () => {
     if (!videoRef.current || !canvasRef.current) {
-      setStatus('Camera not ready');
+      setStatus('System not active.');
       return;
     }
 
     setIsProcessing(true);
-    setStatus('Capturing image...');
+    setStatus('Capturing high-quality image...');
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      setStatus('Canvas context unavailable.');
+      setIsProcessing(false);
+      return;
+    }
 
     try {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
+      // HIGHER QUALITY CAPTURE
+      const captureWidth = Math.min(video.videoWidth || 1280, 1920);  // Max 1920px width
+      const captureHeight = Math.min(video.videoHeight || 720, 1080); // Max 1080px height
       
-      if (!ctx) {
-        throw new Error('Canvas context not available');
-      }
+      canvas.width = captureWidth;
+      canvas.height = captureHeight;
+      
+      // Draw with high quality
+      ctx.imageSmoothingEnabled = true;
+      // @ts-ignore DOM type has string union - keep as any for cross-browser
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(video, 0, 0, captureWidth, captureHeight);
 
-      // Set canvas size to video size
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      // Draw video frame to canvas
-      ctx.drawImage(video, 0, 0);
-      
-      // Convert to blob
+      // Convert to blob and process
       canvas.toBlob(async (blob) => {
         if (!blob) {
-          setStatus('Failed to capture image');
+          setStatus('Failed to capture image.');
           setIsProcessing(false);
           return;
         }
 
-        // Show captured image
-        const url = URL.createObjectURL(blob);
-        setCapturedImageUrl(url);
-        
-        // Process the image
-        await processImage(blob);
-      }, 'image/jpeg', 0.9);
-      
-    } catch (error) {
-      console.error('Capture error:', error);
-      setStatus('Capture failed: ' + (error instanceof Error ? error.message : String(error)));
+        // Show captured preview
+        try {
+          const url = URL.createObjectURL(blob);
+          // revoke previous if exists
+          if (capturedImageUrl) {
+            try { URL.revokeObjectURL(capturedImageUrl); } catch (e) {}
+          }
+          setCapturedImageUrl(url);
+        } catch (e) {
+          // ignore preview creation errors
+        }
+
+        try {
+          setStatus('Sending to OCR service...');
+
+          // If scanMode is 'text' and you want to prefer local Tesseract, you could
+          // run local OCR here. Current flow: send to backend OCR endpoint.
+          // Choose backend path:
+          const useLocalTesseract = false; // set true to use workerRef (fallback)
+
+          if (scanMode === 'text' && useLocalTesseract && workerRef.current) {
+            setStatus('Running local Tesseract OCR (fallback)...');
+            try {
+              const { data: { text } } = await workerRef.current.recognize(blob);
+              setStatus(`✅ OCR Complete!\n\n📝 Extracted Text:\n${text}`);
+              setEnrichResults({ text, source: 'local_tesseract' });
+            } catch (localErr) {
+              console.warn('Local OCR failed, will fallback to backend:', localErr);
+              // fallback to backend below
+            }
+          }
+
+          // Create FormData for the API
+          const formData = new FormData();
+          formData.append('file', new File([blob], 'capture.jpg', { type: 'image/jpeg' }));
+
+          // Send to your backend
+          const response = await fetch('http://localhost:8000/ocr', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const result = await response.json();
+
+          setStatus('✅ Processing complete!');
+          
+          // Store results
+          setEnrichResults({
+            ...result,
+            captured_at: new Date().toISOString()
+          });
+
+          console.log('OCR Result:', result);
+
+          // Optionally stop camera after successful capture:
+          // stopCamera();
+
+        } catch (err: any) {
+          console.error('OCR failed:', err);
+          setStatus(`❌ Processing failed: ${err?.message || String(err)}`);
+        } finally {
+          setIsProcessing(false);
+        }
+      }, 'image/jpeg', 0.95); // High quality JPEG
+    } catch (err: any) {
+      console.error('captureAndProcess error:', err);
+      setStatus(`❌ Capture failed: ${err?.message || String(err)}`);
       setIsProcessing(false);
     }
   };
+  // ----- end captureAndProcess -----
 
   const processImage = async (blob: Blob) => {
+    // kept for backward compatibility but unused in default flow
     setStatus('Running OCR...');
     
     try {
@@ -139,10 +228,8 @@ function ScanView() {
       const { data: { text } } = await workerRef.current.recognize(blob);
       
       if (text && text.trim()) {
-        // Display OCR results directly instead of sending to webhook
         setStatus(`✅ OCR Complete!\n\n📝 Extracted Text:\n${text}`);
-        // Comment out webhook call for testing
-        // await sendToWebhook(blob, text);
+        setEnrichResults({ text, source: 'local_tesseract' });
         setIsProcessing(false);
       } else {
         setStatus('No readable text found.');
@@ -347,12 +434,12 @@ function ScanView() {
                     {/* Action Buttons */}
                     <div className="flex gap-4 mt-4">
                       <button
-                        onClick={captureImage}
+                        onClick={captureAndProcess}
                         disabled={isProcessing}
                         className="px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-2xl hover:from-purple-600 hover:to-cyan-600 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 disabled:opacity-50 backdrop-blur-sm border border-slate-600/50 font-semibold"
                       >
                         <Camera className="w-4 h-4" />
-                        {isProcessing ? 'Processing...' : 'Capture Image'}
+                        {isProcessing ? 'Processing...' : 'Capture & OCR'}
                       </button>
                       
                       <button
@@ -521,12 +608,12 @@ function ScanView() {
                     {/* Action Buttons */}
                     <div className="flex gap-4 mt-4">
                       <button
-                        onClick={captureImage}
+                        onClick={captureAndProcess}
                         disabled={isProcessing}
                         className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded-2xl hover:from-purple-600 hover:to-violet-600 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 disabled:opacity-50 backdrop-blur-sm border border-slate-600/50 font-semibold"
                       >
                         <Camera className="w-4 h-4" />
-                        {isProcessing ? 'Processing...' : 'Capture Text'}
+                        {isProcessing ? 'Processing...' : 'Capture & OCR'}
                       </button>
                       
                       <button
