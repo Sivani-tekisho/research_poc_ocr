@@ -1,8 +1,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { QrCode, FileText, Nfc, Camera, X, ExternalLink } from 'lucide-react';
-import Tesseract from 'tesseract.js';
 import { qrDetectionService } from '../services/qrDetection';
+import { DatabaseService } from '../lib/supabase'; 
 
 type ScanMode = 'qr' | 'nfc' | 'text' | null;
 
@@ -173,6 +173,8 @@ function ScanView() {
     }
   };
   // ----- end captureAndProcess -----
+
+  
 
   // New function that combines QR detection with AI business card processing
   const processImageWithQRDetection = async (blob: Blob) => {
