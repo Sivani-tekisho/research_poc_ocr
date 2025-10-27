@@ -1236,6 +1236,7 @@ async def crawl_multiple_companies(
 
 # @app.post("/scrape-website-details")
 
+<<<<<<< HEAD
 
 @app.get("/api/v1/crawl-data")
 async def get_crawl_data(
@@ -1369,6 +1370,8 @@ async def get_crawl_data_by_id(record_id: str):
             detail=f"Failed to fetch crawl data: {str(e)}"
         )
 
+=======
+>>>>>>> upstream/krishna-feature-branch
 
 # WhatsApp webhook endpoint
 @app.post("/api/v1/whatsapp/webhook")
