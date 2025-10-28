@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Mic, Send, Bot, Users, BarChart3 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import RobotAvatar from './RobotAvatar';
 import UploadView from './UploadView';
 import ScanView from './ScanView';
@@ -22,6 +21,11 @@ function ChatView({ activeView, analysisSubsection, setAnalysisSubsection, setAc
       console.log('Sending message:', message);
       setMessage('');
     }
+  };
+
+  const handleCardScanned = (data: any) => {
+    console.log('Card scanned:', data);
+    // Handle the scanned card data here
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -65,7 +69,7 @@ function ChatView({ activeView, analysisSubsection, setAnalysisSubsection, setAc
           </button>
           <h2 className="text-3xl font-bold text-white">Scanner</h2>
         </div>
-        <ScanView />
+        <ScanView onCardScanned={handleCardScanned} />
       </div>
     );
   }
@@ -94,7 +98,10 @@ function ChatView({ activeView, analysisSubsection, setAnalysisSubsection, setAc
 
           {/* Database Content */}
           <div className="relative z-10 flex-1">
-            <DatabaseView />
+            <DatabaseView 
+              toggleNavbar={() => {}} 
+              setIsSidePanelOpen={() => {}} 
+            />
           </div>
         </div>
       );

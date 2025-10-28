@@ -10,6 +10,7 @@ interface Customer {
   email: string;
   address: string;
   title: string;
+  status?: 'active' | 'inactive';
 }
 
 function DatabaseView({
