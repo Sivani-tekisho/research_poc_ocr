@@ -1,13 +1,4 @@
 import { useState } from 'react';
-import {
-  Home,
-  MessageSquare,
-  Upload,
-  Camera,
-  Users,
-  BarChart3,
-  Database,
-} from 'lucide-react';
 import Navbar from './components/Navbar';
 import ChatView from './components/ChatView';
 import UploadView from './components/UploadView';
@@ -15,11 +6,10 @@ import ScanView from './components/ScanView';
 import DatabaseView from './components/DatabaseView';
 import { HomePage } from './components/HomePage';
 import { VoiceAssistant } from './components/VoiceAssistant';
+import { SummaryPanel, ScannedPersonData } from './components/SummaryPanel';
 
 function App() {
   const [activeView, setActiveView] = useState<'home' | 'chat' | 'upload' | 'scan' | 'analysis'>('home');
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanMode, setScanMode] = useState<'qr' | 'barcode' | 'nfc' | 'text' | null>(null);
   const [isVoiceAssistantOpen, setIsVoiceAssistantOpen] = useState(false);
 
   // analysis subsection state
@@ -28,15 +18,14 @@ function App() {
 
   const [isCollapsed, setIsCollapsed] = useState(false); // Navbar collapse state
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false); // Side panel state
+  
+  // Summary Panel State
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [scannedPersonData, setScannedPersonData] = useState<ScannedPersonData | null>(null);
 
 
   const handleNavClick = (view: 'home' | 'chat' | 'upload' | 'scan' | 'analysis') => {
     setActiveView(view);
-    // stop scanning when leaving scanner view
-    if (view !== 'scan') {
-      setIsScanning(false);
-      setScanMode(null);
-    }
 
     // if opening analysis, default to overview
     if (view === 'analysis') {
@@ -51,11 +40,16 @@ function App() {
     if (!isSidePanelOpen) {
       setIsCollapsed((prev) => !prev);
     }
-  }
+  };
 
-  const stopScanning = () => {
-    setIsScanning(false);
-    setScanMode(null);
+  // Handle scanned business card data
+  const handleCardScanned = (data: ScannedPersonData) => {
+    setScannedPersonData(data);
+    setIsSummaryOpen(true);
+  };
+
+  const closeSummaryPanel = () => {
+    setIsSummaryOpen(false);
   };
 
   const openVoiceAssistant = () => {
@@ -83,8 +77,13 @@ function App() {
           toggleCollapse={toggleNavbar}/>
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col relative">
-          {activeView === 'home' && <HomePage onOpenVoiceAssistant={openVoiceAssistant} />}
+        <main className={`flex-1 flex flex-col relative transition-all duration-300 ${isSummaryOpen ? 'mr-96' : ''}`}>
+          {activeView === 'home' && (
+            <HomePage 
+              onOpenVoiceAssistant={openVoiceAssistant} 
+              onCardScanned={handleCardScanned}
+            />
+          )}
           {activeView === 'chat' && (
             <ChatView
               activeView={activeView}
@@ -94,7 +93,7 @@ function App() {
             />
           )}
           {activeView === 'upload' && <UploadView />}
-          {activeView === 'scan' && <ScanView />}
+          {activeView === 'scan' && <ScanView onCardScanned={handleCardScanned} />}
           {activeView === 'analysis' && (
             <DatabaseView
               toggleNavbar={toggleNavbar}
@@ -102,6 +101,13 @@ function App() {
             />
           )}
         </main>
+
+        {/* Summary Panel */}
+        <SummaryPanel
+          isOpen={isSummaryOpen}
+          onClose={closeSummaryPanel}
+          scannedData={scannedPersonData}
+        />
       </div>
 
       {/* Voice Assistant Modal */}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { QrCode, FileText, Nfc, Camera, X, ExternalLink } from 'lucide-react';
 import { qrDetectionService } from '../services/qrDetection';
@@ -27,7 +26,6 @@ function ScanView() {
     return () => {
       stopCamera();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isScanning, scanMode]);
 
   // Clear captured image when scan mode changes
@@ -39,11 +37,6 @@ function ScanView() {
   const startCamera = async () => {
     setStatus('Requesting camera access...');
     try {
-      // Correct Tesseract.js v6 initialization
-      const worker = await Tesseract.createWorker('eng');
-      workerRef.current = worker;
-      console.log('Tesseract.js worker initialized successfully.');
-
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           facingMode: 'environment',
@@ -56,7 +49,7 @@ function ScanView() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
-        setStatus('Camera ready. Position your business card and click "Capture".');
+        setStatus('Camera ready. Position your business card and click "Capture Image".');
       }
     } catch (error) {
       console.error('Camera Error:', error);
@@ -66,30 +59,17 @@ function ScanView() {
 
   const stopCamera = () => {
     if (streamRef.current) {
-      try {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      } catch (err) {
-        console.warn('Error stopping tracks:', err);
-      }
+      streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
     if (workerRef.current) {
-      try {
-        workerRef.current.terminate();
-      } catch (err) {
-        console.warn('Error terminating tesseract worker:', err);
-      }
+      workerRef.current.terminate();
       workerRef.current = null;
     }
     
     // Clean up captured image URL to prevent memory leaks
     if (capturedImageUrl) {
-      try {
-        URL.revokeObjectURL(capturedImageUrl);
-      } catch (e) {
-        /* ignore */
-      }
-      setCapturedImageUrl(null);
+      URL.revokeObjectURL(capturedImageUrl);
     }
   };
 
@@ -118,42 +98,35 @@ function ScanView() {
     });
   };
 
-  // ----- REPLACED: captureImage -> captureAndProcess -----
-  const captureAndProcess = async () => {
+  const captureImage = async () => {
     if (!videoRef.current || !canvasRef.current) {
-      setStatus('System not active.');
+      setStatus('Camera not ready');
       return;
     }
 
     setIsProcessing(true);
-    setStatus('Capturing high-quality image...');
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      setStatus('Canvas context unavailable.');
-      setIsProcessing(false);
-      return;
-    }
+    setStatus('Capturing image...');
 
     try {
-      // HIGHER QUALITY CAPTURE
-      const captureWidth = Math.min(video.videoWidth || 1280, 1920);  // Max 1920px width
-      const captureHeight = Math.min(video.videoHeight || 720, 1080); // Max 1080px height
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
       
-      canvas.width = captureWidth;
-      canvas.height = captureHeight;
-      
-      // Draw with high quality
-      ctx.imageSmoothingEnabled = true;
-      // @ts-ignore DOM type has string union - keep as any for cross-browser
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(video, 0, 0, captureWidth, captureHeight);
+      if (!ctx) {
+        throw new Error('Canvas context not available');
+      }
 
-      // Convert to blob and process
+      // Set canvas size to video size
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      // Draw video frame to canvas
+      ctx.drawImage(video, 0, 0);
+      
+      // Convert to blob
       canvas.toBlob(async (blob) => {
         if (!blob) {
-          setStatus('Failed to capture image.');
+          setStatus('Failed to capture image');
           setIsProcessing(false);
           return;
         }
@@ -162,8 +135,8 @@ function ScanView() {
         const url = URL.createObjectURL(blob);
         setCapturedImageUrl(url);
         
-        // Process the image
-        await processImage(blob);
+        // Process the image with both QR detection and AI OCR
+        await processImageWithQRDetection(blob);
       }, 'image/jpeg', 0.9);
       
     } catch (error) {
@@ -172,7 +145,6 @@ function ScanView() {
       setIsProcessing(false);
     }
   };
-  // ----- end captureAndProcess -----
 
   
 
@@ -331,20 +303,74 @@ function ScanView() {
 
   // Keep original processImage for text mode
   const processImage = async (blob: Blob) => {
-    setStatus('Running OCR...');
+    setStatus('Sending to AI Vision API...');
     
     try {
-      if (!workerRef.current) {
-        throw new Error('OCR worker not initialized');
+      const formData = new FormData();
+      formData.append('file', blob, 'business_card.jpeg');
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      
+      const response = await fetch('http://localhost:8000/ai-business-card', {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
       }
+
+      const result = await response.json();
       
-      const { data: { text } } = await workerRef.current.recognize(blob);
+      console.log('🔍 Backend response:', result);
       
-      if (text && text.trim()) {
-        // Display OCR results directly instead of sending to webhook
-        setStatus(`✅ OCR Complete!\n\n📝 Extracted Text:\n${text}`);
-        // Comment out webhook call for testing
-        // await sendToWebhook(blob, text);
+      if (result.success) {
+        const structuredInfo = result.structured_data || result.structuredInfo || {};
+        
+        let displayText = '✅ AI Analysis Complete!\n\n';
+        displayText += '📝 Extracted Information:\n\n';
+        
+        if (structuredInfo.name) displayText += `👤 Name: ${structuredInfo.name}\n`;
+        if (structuredInfo.title) displayText += `💼 Title: ${structuredInfo.title}\n`;
+        if (structuredInfo.company) displayText += `🏢 Company: ${structuredInfo.company}\n`;
+        if (structuredInfo.email) displayText += `📧 Email: ${structuredInfo.email}\n`;
+        if (structuredInfo.phone) displayText += `📱 Phone: ${structuredInfo.phone}\n`;
+        if (structuredInfo.website) displayText += `🌐 Website: ${structuredInfo.website}\n`;
+        if (structuredInfo.address) displayText += `📍 Address: ${structuredInfo.address}\n`;
+        
+        if (result.qr_codes && Array.isArray(result.qr_codes) && result.qr_codes.length > 0) {
+          displayText += `\n📱 QR Codes Found: ${result.qr_count || result.qr_codes.length}\n`;
+          result.qr_codes.forEach((qr: any, idx: number) => {
+            const qrData = typeof qr === 'object' ? (qr.data || qr.text || 'No data') : qr;
+            displayText += `  ${idx + 1}. ${qrData}\n`;
+          });
+        } else {
+          displayText += `\n📱 No QR Codes Found\n`;
+        }
+        
+        displayText += `\n🎯 Confidence: ${((result.confidence || 0) * 100).toFixed(1)}%`;
+        
+        setStatus(displayText);
+        
+        setEnrichResults({
+          structured_data: structuredInfo,
+          qr_codes: result.qr_codes || [],
+          confidence: result.confidence || 0,
+          company_info: {
+            name: structuredInfo.company,
+            website: structuredInfo.website
+          },
+          linkedin_profiles: [],
+          meta: {
+            elapsed_seconds: 0,
+            linkedin_profiles_found: 0
+          }
+        });
+        
         setIsProcessing(false);
       } else {
         setStatus('❌ AI analysis failed: ' + (result.error || 'Unknown error'));
@@ -593,12 +619,12 @@ function ScanView() {
 
                     <div className="flex gap-4 mt-4">
                       <button
-                        onClick={captureAndProcess}
+                        onClick={captureImage}
                         disabled={isProcessing}
                         className="px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-2xl hover:from-purple-600 hover:to-cyan-600 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 disabled:opacity-50 backdrop-blur-sm border border-slate-600/50 font-semibold"
                       >
                         <Camera className="w-4 h-4" />
-                        {isProcessing ? 'Processing...' : 'Capture Image'}
+                        {isProcessing ? 'Processing...' : 'Capture & Analyze'}
                       </button>
                       
                       <button
@@ -788,12 +814,12 @@ function ScanView() {
 
                     <div className="flex gap-4 mt-4">
                       <button
-                        onClick={captureImage}
+                        onClick={handleTextCapture}
                         disabled={isProcessing}
                         className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded-2xl hover:from-purple-600 hover:to-violet-600 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 disabled:opacity-50 backdrop-blur-sm border border-slate-600/50 font-semibold"
                       >
                         <Camera className="w-4 h-4" />
-                        {isProcessing ? 'Processing...' : 'Capture & OCR'}
+                        {isProcessing ? 'Processing...' : 'Capture Text'}
                       </button>
                       
                       <button

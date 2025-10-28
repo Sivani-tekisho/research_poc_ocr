@@ -1,13 +1,76 @@
 import { motion } from "framer-motion";
-import { Mic, Search } from "lucide-react";
+import { Mic, Search, User } from "lucide-react";
 import { useState } from "react";
+import { ScannedPersonData } from "./SummaryPanel";
 
 interface HomePageProps {
   onOpenVoiceAssistant: () => void;
+  onCardScanned?: (data: ScannedPersonData) => void;
 }
 
-export const HomePage = ({ onOpenVoiceAssistant }: HomePageProps) => {
+export const HomePage = ({ onOpenVoiceAssistant, onCardScanned }: HomePageProps) => {
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Demo function to show summary panel with sample data
+  const showDemoSummary = () => {
+    if (!onCardScanned) return;
+    
+    const sampleData: ScannedPersonData = {
+      name: "John Smith",
+      title: "Senior Software Engineer",
+      company: "TechCorp Inc.",
+      email: "john.smith@techcorp.com",
+      phone: "+1 (555) 123-4567",
+      address: "123 Tech Street, San Francisco, CA 94105",
+      industry: "Technology / Software Development",
+      companies: [
+        {
+          name: "TechCorp Inc.",
+          position: "Senior Software Engineer",
+          duration: "2021 - Present",
+          description: "Lead developer for cloud infrastructure and microservices architecture."
+        },
+        {
+          name: "StartupXYZ",
+          position: "Full Stack Developer",
+          duration: "2019 - 2021",
+          description: "Built scalable web applications using React and Node.js."
+        },
+        {
+          name: "InnovateLab",
+          position: "Junior Developer",
+          duration: "2017 - 2019",
+          description: "Developed mobile applications and learned best practices in software development."
+        }
+      ],
+      awards: [
+        {
+          title: "Developer of the Year",
+          organization: "TechCorp Inc.",
+          year: "2023",
+          description: "Recognized for outstanding contribution to product development and team leadership."
+        },
+        {
+          title: "Best Innovation Award",
+          organization: "StartupXYZ",
+          year: "2020",
+          description: "Created an AI-powered feature that increased user engagement by 40%."
+        }
+      ],
+      skills: ["React", "Node.js", "Python", "AWS", "Docker", "Kubernetes", "TypeScript", "GraphQL"],
+      education: [
+        {
+          degree: "Master of Science in Computer Science",
+          institution: "Stanford University",
+          year: "2017"
+        }
+      ],
+      summary: "Experienced software engineer with 6+ years in full-stack development. Specializes in cloud architecture and has led multiple high-impact projects. Known for innovative problem-solving and mentoring junior developers.",
+      lastScanned: new Date().toLocaleString()
+    };
+    
+    onCardScanned(sampleData);
+  };
 
   return (
     <div className="flex flex-col h-full relative">
@@ -51,19 +114,38 @@ export const HomePage = ({ onOpenVoiceAssistant }: HomePageProps) => {
           </div>
         </motion.div>
 
-        {/* Voice Assistant Button */}
-        <motion.button
-          onClick={onOpenVoiceAssistant}
-          className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 shadow-lg hover:shadow-purple-500/25 flex items-center justify-center transition-all"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-        >
-          <Mic className="w-8 h-8 text-white" />
-        </motion.button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-4">
+          {/* Voice Assistant Button */}
+          <motion.button
+            onClick={onOpenVoiceAssistant}
+            className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 shadow-lg hover:shadow-purple-500/25 flex items-center justify-center transition-all"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          >
+            <Mic className="w-8 h-8 text-white" />
+          </motion.button>
+
+          {/* Demo Summary Button */}
+          {onCardScanned && (
+            <motion.button
+              onClick={showDemoSummary}
+              className="w-16 h-16 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-lg hover:shadow-emerald-500/25 flex items-center justify-center transition-all"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            >
+              <User className="w-8 h-8 text-white" />
+            </motion.button>
+          )}
+        </div>
 
         <p className="text-slate-300 text-center">
-          Click to activate voice assistant
+          {onCardScanned 
+            ? "Click mic for voice assistant or profile icon to see demo summary"
+            : "Click to activate voice assistant"
+          }
         </p>
       </div>
     </div>
