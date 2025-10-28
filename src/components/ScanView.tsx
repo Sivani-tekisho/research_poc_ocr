@@ -1,11 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { QrCode, FileText, Nfc, Camera, X, ExternalLink } from 'lucide-react';
 import { qrDetectionService } from '../services/qrDetection';
-import { DatabaseService } from '../lib/supabase'; 
+import { ScannedPersonData } from './SummaryPanel';
 
 type ScanMode = 'qr' | 'nfc' | 'text' | null;
 
-function ScanView() {
+interface ScanViewProps {
+  onCardScanned: (data: ScannedPersonData) => void;
+}
+
+function ScanView({ onCardScanned }: ScanViewProps) {
   const [scanMode, setScanMode] = useState<ScanMode>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -264,7 +268,7 @@ function ScanView() {
         setStatus(displayText);
         
         // Store enriched results for display
-        setEnrichResults({
+        const enrichedData = {
           structured_data: structuredInfo,
           qr_codes: allQRCodes, // Use merged QR codes
           qr_count: allQRCodes.length,
@@ -278,7 +282,22 @@ function ScanView() {
             elapsed_seconds: 0,
             linkedin_profiles_found: 0
           }
-        });
+        };
+        
+        setEnrichResults(enrichedData);
+        
+        // Call the onCardScanned callback with formatted data
+        if (onCardScanned && structuredInfo) {
+          const scannedPersonData: ScannedPersonData = {
+            name: structuredInfo.name,
+            title: structuredInfo.title,
+            company: structuredInfo.company,
+            email: structuredInfo.email,
+            phone: structuredInfo.phone,
+            address: structuredInfo.address,
+          };
+          onCardScanned(scannedPersonData);
+        }
         
         setIsProcessing(false);
       } else {
@@ -356,7 +375,7 @@ function ScanView() {
         
         setStatus(displayText);
         
-        setEnrichResults({
+        const enrichedData = {
           structured_data: structuredInfo,
           qr_codes: result.qr_codes || [],
           confidence: result.confidence || 0,
@@ -369,7 +388,22 @@ function ScanView() {
             elapsed_seconds: 0,
             linkedin_profiles_found: 0
           }
-        });
+        };
+        
+        setEnrichResults(enrichedData);
+        
+        // Call the onCardScanned callback with formatted data
+        if (onCardScanned && structuredInfo) {
+          const scannedPersonData: ScannedPersonData = {
+            name: structuredInfo.name,
+            title: structuredInfo.title,
+            company: structuredInfo.company,
+            email: structuredInfo.email,
+            phone: structuredInfo.phone,
+            address: structuredInfo.address,
+          };
+          onCardScanned(scannedPersonData);
+        }
         
         setIsProcessing(false);
       } else {
@@ -392,25 +426,6 @@ function ScanView() {
     }
   };
 
-  const sendToWebhook = async (imageBlob: Blob, text: string) => {
-    const formData = new FormData();
-    formData.append('ocr_image', imageBlob, 'ocr_capture.jpeg');
-    formData.append('extracted_text', text);
-
-    try {
-      const res = await fetch(webhookUrl, { method: 'POST', body: formData });
-      if (res.ok) {
-        setStatus(`✅ Data sent successfully.`);
-        setIsProcessing(false);
-      } else {
-        setStatus(`❌ Webhook error: ${res.status}`);
-        setIsProcessing(false);
-      }
-    } catch (e) {
-      setStatus('Network error while posting data.');
-      setIsProcessing(false);
-    }
-  };
 
   const constructCompanyURL = (platform: string, company: string) => {
     const cleanCompany = company.toLowerCase().replace(/\s+/g, '');

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 interface Customer {
   id: string;
@@ -10,6 +10,7 @@ interface Customer {
   email: string;
   address: string;
   title: string;
+  status?: 'active' | 'inactive';
 }
 
 function DatabaseView({

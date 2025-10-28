@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Mic, Send, Bot, Users, BarChart3 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import RobotAvatar from './RobotAvatar';
 import UploadView from './UploadView';
 import ScanView from './ScanView';
 import DatabaseView from './DatabaseView';
+import { ScannedPersonData } from './SummaryPanel';
 
 interface ChatViewProps {
   activeView: 'chat' | 'upload' | 'scan' | 'analysis';
@@ -16,6 +16,11 @@ interface ChatViewProps {
 function ChatView({ activeView, analysisSubsection, setAnalysisSubsection, setActiveView }: ChatViewProps) {
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+
+  const handleCardScanned = (data: ScannedPersonData) => {
+    console.log('Card scanned in ChatView:', data);
+    // You can add logic here to handle the scanned data in the chat context
+  };
 
   const handleSend = () => {
     if (message.trim()) {
@@ -65,7 +70,7 @@ function ChatView({ activeView, analysisSubsection, setAnalysisSubsection, setAc
           </button>
           <h2 className="text-3xl font-bold text-white">Scanner</h2>
         </div>
-        <ScanView />
+        <ScanView onCardScanned={handleCardScanned} />
       </div>
     );
   }
@@ -94,7 +99,10 @@ function ChatView({ activeView, analysisSubsection, setAnalysisSubsection, setAc
 
           {/* Database Content */}
           <div className="relative z-10 flex-1">
-            <DatabaseView />
+            <DatabaseView 
+              toggleNavbar={() => {}} 
+              setIsSidePanelOpen={() => {}} 
+            />
           </div>
         </div>
       );
