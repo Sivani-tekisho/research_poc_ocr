@@ -1,12 +1,9 @@
-import { useState } from 'react';
 import {
   MessageSquare,
   Home,
   Camera,
   Upload,
   BarChart3,
-  Users,
-  Database,
   Menu,
   Settings,
 } from 'lucide-react';
@@ -51,7 +48,11 @@ function NavButton({ label, icon, active, collapsed, onClick }: NavButtonProps) 
 }
 
 function Navbar({ activeView, onNavClick, isCollapsed, toggleCollapse }: NavbarProps) {
-  const navItems = [
+  const navItems: Array<{
+    label: string;
+    icon: JSX.Element;
+    view: 'home' | 'chat' | 'scan' | 'upload' | 'analysis';
+  }> = [
     { label: 'Home', icon: <Home className="w-5 h-5" />, view: 'home' },
     { label: 'Chatterbox', icon: <MessageSquare className="w-5 h-5" />, view: 'chat' },
     { label: 'Scanner', icon: <Camera className="w-5 h-5" />, view: 'scan' },
@@ -70,15 +71,19 @@ function Navbar({ activeView, onNavClick, isCollapsed, toggleCollapse }: NavbarP
       <div className="p-4 border-b border-slate-700 flex items-center justify-between">
         <div className="flex items-center justify-center w-full">
           <div
-            className={`flex items-center justify-center rounded-md text-white font-bold bg-gradient-to-r from-purple-400 to-cyan-400 ${
+            className={`flex items-center justify-center rounded-md ${
               isCollapsed ? 'w-10 h-10' : 'w-10 h-10'
             }`}
             aria-hidden
           >
-            T
+            <img
+              src="/src/images/tekisho-logo.jpg"
+              alt="Tekisho"
+              className="w-full h-full object-contain rounded-md"
+            />
           </div>
           {!isCollapsed && (
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent ml-3">
               Tekisho
             </h1>
           )}
