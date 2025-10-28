@@ -237,6 +237,12 @@ Dockerfile
 # Bolt.new
 .bolt/
 
+# Backend/Python services (not needed for frontend deployment)
+src/enrich_service/
+requirements.txt
+Dockerfile
+*.pyc
+
 # Lock files (optional - uncomment if you want to ignore them)
 # package-lock.json
 # yarn.lock

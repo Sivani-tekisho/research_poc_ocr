@@ -182,27 +182,27 @@ function ScanView({ onCardScanned }: ScanViewProps) {
       setStatus('⚠️ QR detection had issues.\n\n🤖 Step 2/2: Analyzing with AI Vision...');
     }
     
-    // Mock AI business card analysis for frontend-only deployment
+    // Now send to AI business card endpoint
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const formData = new FormData();
+      formData.append('file', blob, 'business_card.jpeg');
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
       
-      // Mock successful response data
-      const result = {
-        success: true,
-        structured_data: {
-          name: "Demo User",
-          company: "Tech Company", 
-          title: "Software Engineer",
-          email: "demo@company.com",
-          phone: "+1-555-0123",
-          address: "123 Tech Street, Silicon Valley, CA",
-          website: "https://company.com"
-        },
-        confidence: 0.92,
-        qr_codes: [],
-        qr_count: 0
-      };
+      const response = await fetch('http://localhost:8000/ai-business-card', {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
+      }
+
+      const result = await response.json();
       
       console.log('🔍 Backend AI response:', result);
       
@@ -286,22 +286,17 @@ function ScanView({ onCardScanned }: ScanViewProps) {
         
         setEnrichResults(enrichedData);
         
-        // Call the callback with the scanned person data
-        if (structuredInfo.name || structuredInfo.company) {
-          onCardScanned({
-            name: structuredInfo.name || 'Unknown',
-            company: structuredInfo.company || 'Unknown',
-            title: structuredInfo.title || 'Unknown',
-            email: structuredInfo.email || 'N/A',
-            phone: structuredInfo.phone || 'N/A',
-            address: structuredInfo.address || 'N/A',
-            socialProfiles: structuredInfo.website ? [
-              {
-                platform: 'website',
-                url: structuredInfo.website
-              }
-            ] : undefined
-          });
+        // Call the onCardScanned callback with formatted data
+        if (onCardScanned && structuredInfo) {
+          const scannedPersonData: ScannedPersonData = {
+            name: structuredInfo.name,
+            title: structuredInfo.title,
+            company: structuredInfo.company,
+            email: structuredInfo.email,
+            phone: structuredInfo.phone,
+            address: structuredInfo.address,
+          };
+          onCardScanned(scannedPersonData);
         }
         
         setIsProcessing(false);
@@ -380,7 +375,7 @@ function ScanView({ onCardScanned }: ScanViewProps) {
         
         setStatus(displayText);
         
-        setEnrichResults({
+        const enrichedData = {
           structured_data: structuredInfo,
           qr_codes: result.qr_codes || [],
           confidence: result.confidence || 0,
@@ -393,7 +388,22 @@ function ScanView({ onCardScanned }: ScanViewProps) {
             elapsed_seconds: 0,
             linkedin_profiles_found: 0
           }
-        });
+        };
+        
+        setEnrichResults(enrichedData);
+        
+        // Call the onCardScanned callback with formatted data
+        if (onCardScanned && structuredInfo) {
+          const scannedPersonData: ScannedPersonData = {
+            name: structuredInfo.name,
+            title: structuredInfo.title,
+            company: structuredInfo.company,
+            email: structuredInfo.email,
+            phone: structuredInfo.phone,
+            address: structuredInfo.address,
+          };
+          onCardScanned(scannedPersonData);
+        }
         
         setIsProcessing(false);
       } else {
@@ -416,8 +426,6 @@ function ScanView({ onCardScanned }: ScanViewProps) {
     }
   };
 
-  // Remove unused sendToWebhook function since webhookUrl is not defined
-  // and the function is never called in the component
 
   const constructCompanyURL = (platform: string, company: string) => {
     const cleanCompany = company.toLowerCase().replace(/\s+/g, '');

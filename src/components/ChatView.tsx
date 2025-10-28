@@ -4,6 +4,7 @@ import RobotAvatar from './RobotAvatar';
 import UploadView from './UploadView';
 import ScanView from './ScanView';
 import DatabaseView from './DatabaseView';
+import { ScannedPersonData } from './SummaryPanel';
 
 interface ChatViewProps {
   activeView: 'chat' | 'upload' | 'scan' | 'analysis';
@@ -16,16 +17,16 @@ function ChatView({ activeView, analysisSubsection, setAnalysisSubsection, setAc
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
 
+  const handleCardScanned = (data: ScannedPersonData) => {
+    console.log('Card scanned in ChatView:', data);
+    // You can add logic here to handle the scanned data in the chat context
+  };
+
   const handleSend = () => {
     if (message.trim()) {
       console.log('Sending message:', message);
       setMessage('');
     }
-  };
-
-  const handleCardScanned = (data: any) => {
-    console.log('Card scanned:', data);
-    // Handle the scanned card data here
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
