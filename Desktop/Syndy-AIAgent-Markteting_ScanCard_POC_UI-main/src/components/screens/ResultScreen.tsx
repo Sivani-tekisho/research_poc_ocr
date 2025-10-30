@@ -24,7 +24,7 @@ export function ResultScreen({
   const isCompleted = processingStatus === 'completed';
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 overflow-x-hidden">
+    <div className="flex-1 flex items-center justify-center p-4 overflow-x-hidden">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}

@@ -33,17 +33,17 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => 
   };
 
   return (
-    <div className="bg-slate-800/30 backdrop-blur-sm border-b border-slate-700/50 p-2 sm:p-4 overflow-x-auto">
-      <div className="max-w-5xl mx-auto min-w-max">
+    <div className="sticky top-0 z-50 bg-slate-800/50 backdrop-blur-md border-b border-slate-700/50 p-3 sm:p-4">
+      <div className="max-w-6xl mx-auto">
         {/* Progress Lines */}
-        <div className="flex items-center justify-center space-x-2 mb-4">
+        <div className="flex items-center justify-between mb-3 gap-1">
           {stepConfig.map((step, index) => {
             const status = getStepStatus(index);
             
             return (
               <div
                 key={step.key}
-                className={`h-1 flex-1 max-w-20 rounded-full transition-all duration-500 ${
+                className={`h-1 flex-1 rounded-full transition-all duration-500 ${
                   status === 'completed'
                     ? 'bg-gradient-to-r from-green-400 to-green-500'
                     : status === 'current'
@@ -56,16 +56,16 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => 
         </div>
 
         {/* Step Labels */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-1">
           {stepConfig.map((step, index) => {
             const status = getStepStatus(index);
             const Icon = status === 'completed' ? CheckCircle2 : step.icon;
             
             return (
-              <div key={step.key} className="flex flex-col items-center min-w-0 flex-1">
+              <div key={step.key} className="flex flex-col items-center flex-1 px-1">
                 {/* Step Icon */}
                 <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full mb-1 transition-all duration-300 ${
+                  className={`flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full mb-1 transition-all duration-300 ${
                     status === 'completed'
                       ? 'bg-green-500/20 text-green-400'
                       : status === 'current'
@@ -73,12 +73,12 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => 
                       : 'text-slate-500'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
                 </div>
 
                 {/* Step Label */}
                 <p
-                  className={`text-xs font-medium text-center ${
+                  className={`text-xs font-medium text-center leading-tight ${
                     status === 'completed'
                       ? 'text-green-400'
                       : status === 'current'

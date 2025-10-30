@@ -122,7 +122,7 @@ export const SelfieCaptureScreen: React.FC<SelfieCaptureProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 overflow-x-hidden">
+    <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-x-hidden">
       <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 max-w-lg w-full mx-auto">
         <h2 className="text-2xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
           Take a Selfie
