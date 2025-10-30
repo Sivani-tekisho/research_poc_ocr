@@ -236,8 +236,10 @@ export function CardScannerApp() {
   };
 
   return (
-    <div className="h-screen bg-slate-900 flex flex-col">
-      <StepIndicator currentStep={state.step} />
+    <div className="min-h-screen bg-slate-900 flex flex-col overflow-x-hidden">
+      <div className="w-full">
+        <StepIndicator currentStep={state.step} />
+      </div>
       
       {state.step === 'landing' && (
         <LandingScreen onStartScan={handleStartScan} />

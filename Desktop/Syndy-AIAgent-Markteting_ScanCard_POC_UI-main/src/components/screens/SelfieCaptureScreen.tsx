@@ -122,8 +122,8 @@ export const SelfieCaptureScreen: React.FC<SelfieCaptureProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-4">
-      <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 max-w-md w-full">
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 overflow-x-hidden">
+      <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 max-w-lg w-full mx-auto">
         <h2 className="text-2xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
           Take a Selfie
         </h2>
@@ -156,11 +156,11 @@ export const SelfieCaptureScreen: React.FC<SelfieCaptureProps> = ({
           <>
             <div className="mb-6">
               <h3 className="text-lg font-medium text-slate-200 mb-3 text-center">Preview Your Selfie</h3>
-              <div className="relative bg-black rounded-xl overflow-hidden border border-slate-700/50">
+              <div className="relative bg-black rounded-xl overflow-hidden border border-slate-700/50 aspect-[4/3]">
                 <img 
                   src={capturedImage} 
                   alt="Captured selfie" 
-                  className="w-full h-64 object-cover"
+                  className="w-full h-full object-cover"
                   style={{ transform: 'scaleX(-1)' }} // Mirror to match video preview
                 />
                 
@@ -175,41 +175,43 @@ export const SelfieCaptureScreen: React.FC<SelfieCaptureProps> = ({
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="space-y-3">
               <button
                 onClick={handleConfirmSelfie}
                 disabled={isLoading}
-                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 disabled:from-slate-600 disabled:to-slate-600 text-white font-medium transition-all duration-200 shadow-lg"
+                className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 disabled:from-slate-600 disabled:to-slate-600 text-white font-medium transition-all duration-200 shadow-lg"
               >
                 {isLoading ? 'Uploading...' : 'Confirm & Upload'}
               </button>
 
-              <button
-                onClick={handleRetakeSelfie}
-                disabled={isLoading}
-                className="px-4 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-slate-200 font-medium transition-colors border border-slate-600"
-              >
-                Retake
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleRetakeSelfie}
+                  disabled={isLoading}
+                  className="flex-1 px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-slate-200 font-medium transition-colors border border-slate-600 text-sm"
+                >
+                  Retake
+                </button>
 
-              <button
-                onClick={onSkip}
-                disabled={isLoading}
-                className="px-4 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-slate-200 font-medium transition-colors border border-slate-600"
-              >
-                Skip
-              </button>
+                <button
+                  onClick={onSkip}
+                  disabled={isLoading}
+                  className="flex-1 px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-slate-200 font-medium transition-colors border border-slate-600 text-sm"
+                >
+                  Skip
+                </button>
+              </div>
             </div>
           </>
         ) : (
           <>
             <div className="mb-6">
-              <div className="relative bg-black rounded-xl overflow-hidden border border-slate-700/50">
+              <div className="relative bg-black rounded-xl overflow-hidden border border-slate-700/50 aspect-[4/3]">
                 <video 
                   ref={videoRef} 
                   autoPlay 
                   playsInline 
-                  className="w-full h-64 object-cover"
+                  className="w-full h-full object-cover"
                   style={{ transform: 'scaleX(-1)' }} // Mirror effect for better UX
                 />
                 <canvas 
@@ -231,11 +233,11 @@ export const SelfieCaptureScreen: React.FC<SelfieCaptureProps> = ({
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="space-y-3">
               <button
                 onClick={handleTakePhoto}
                 disabled={isCapturing || isLoading}
-                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 disabled:from-slate-600 disabled:to-slate-600 text-white font-medium transition-all duration-200 shadow-lg"
+                className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 disabled:from-slate-600 disabled:to-slate-600 text-white font-medium transition-all duration-200 shadow-lg"
               >
                 {isCapturing || isLoading ? 'Processing...' : 'Capture Selfie'}
               </button>
@@ -243,9 +245,9 @@ export const SelfieCaptureScreen: React.FC<SelfieCaptureProps> = ({
               <button
                 onClick={onSkip}
                 disabled={isCapturing || isLoading}
-                className="px-4 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-slate-200 font-medium transition-colors border border-slate-600"
+                className="w-full px-4 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-slate-200 font-medium transition-colors border border-slate-600 text-sm"
               >
-                Skip
+                Skip Selfie
               </button>
             </div>
           </>

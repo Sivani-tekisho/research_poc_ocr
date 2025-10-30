@@ -33,8 +33,8 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => 
   };
 
   return (
-    <div className="bg-slate-800/30 backdrop-blur-sm border-b border-slate-700/50 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="bg-slate-800/30 backdrop-blur-sm border-b border-slate-700/50 p-2 sm:p-4 overflow-x-auto">
+      <div className="max-w-5xl mx-auto min-w-max">
         {/* Progress Lines */}
         <div className="flex items-center justify-center space-x-2 mb-4">
           {stepConfig.map((step, index) => {
